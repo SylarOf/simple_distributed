@@ -11,6 +11,42 @@ import (
 	"strings"
 )
 
+func createSH() {
+	// 指定上传目录
+	uploadDir := "./uploads"
+
+	// 获取上传目录下的所有文件
+	files, err := os.ReadDir(uploadDir)
+	if err != nil {
+		fmt.Println("读取上传目录失败:", err)
+		return
+	}
+
+	// 创建 run.sh 文件
+	filePath := "./run_command.sh"
+	file, err := os.Create(filePath)
+	if err != nil {
+		fmt.Println("创建 run.sh 文件失败:", err)
+		return
+	}
+	defer file.Close()
+
+	// 写入命令行头部
+	file.WriteString("#!/bin/bash\n\n")
+
+	// 遍历上传目录下的文件，将文件名写入 run.sh 文件
+	for _, f := range files {
+		if !f.IsDir() {
+			// 获取文件名
+			filename := f.Name()
+			// 写入命令行
+			filename = strings.TrimSuffix(filename, ".zip")
+			file.WriteString(fmt.Sprintf("cd lockbud/Code\n ./detect.sh dest/%s", filename))
+		}
+	}
+
+	fmt.Println("成功创建 run.sh 文件并写入文件名")
+}
 func unzipFile(zipFile, destDir string) error {
 	r, err := zip.OpenReader(zipFile)
 	if err != nil {
@@ -139,7 +175,7 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 指定上传的目录和目标解压缩目录
 	uploadDir := "./uploads"
-	destDir := "./lockbud/Code/uploads"
+	destDir := "./lockbud/Code/dest"
 
 	// 获取上传目录下的所有文件
 	files, err := os.ReadDir(uploadDir)
@@ -174,19 +210,24 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "成功解压缩上传的 .zip 文件到 %s 目录", destDir)
 
 	{
+		createSH()
+	}
+
+	{
 		// 执行 ls 命令
-        cmd := exec.Command("sh", "-c", "cd lockbud/Code; ./detect.sh uploads/use_after_free")
+		cmd := exec.Command("sh", "run_command.sh")
 		// 获取命令的输出结果
-		output, err := cmd.Output()
+		output, err := cmd.CombinedOutput()
 		if err != nil {
-			fmt.Fprintf(w, "命令执行失败:", err)
+			fmt.Fprintf(w, "命令执行失败:%s", err)
 			return
 		}
 
 		// 将输出结果转换为字符串并打印出来
-		fmt.Fprintf(w, string(output))
+		fmt.Fprintf(w, "执行成功%s", string(output))
 	}
 }
+
 func main() {
 	http.Handle("/", http.FileServer(http.Dir(".")))
 	// 上传文件的路由
