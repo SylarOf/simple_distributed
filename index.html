@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传示例</title>
+</head>
+<body>
+    <input type="file" id="fileInput" accept=".zip">
+    <button onclick="uploadFile()">上传</button>
+    <button onclick="redirectToAnswer()">查看</button>
+
+    <script>
+        function uploadFile() {
+            // 获取文件输入框
+            var fileInput = document.getElementById('fileInput');
+            // 获取选中的文件
+            var file = fileInput.files[0];
+            
+            // 创建 FormData 对象
+            var formData = new FormData();
+            // 将文件添加到 FormData 对象中
+            formData.append('file', file);
+
+            // 发送文件到后端
+            fetch('http://localhost:8080/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('上传文件失败');
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log('文件上传成功:', data);
+            })
+            .catch(error => {
+                console.error('上传文件时发生错误:', error);
+            });
+        }
+
+        function redirectToAnswer() {
+            window.location.href = 'http://localhost:8080/answer';
+        }
+    </script>
+</body>
+</html>
